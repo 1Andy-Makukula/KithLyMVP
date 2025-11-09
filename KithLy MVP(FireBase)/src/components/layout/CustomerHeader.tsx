@@ -1,79 +1,39 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { signOut } from 'firebase/auth';
-import { auth } from '../../lib/firebaseConfig';
-import { useAuth } from '../../hooks/useAuth';
+import { Link } from 'react-router-dom';
+import { ShoppingCart, User } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Gift, User, LogOut } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '../ui/dropdown-menu';
 
-export function CustomerHeader() {
-  const { user, userData, isShopOwner } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate('/');
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
-  };
-
+export const CustomerHeader: React.FC = () => {
   return (
-    <header className="border-b bg-white sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg"></div>
-          <span className="text-2xl">Kithly</span>
+    <header className="sticky top-0 z-50 bg-white shadow-md">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+        {/* Branding (Soft Blue) */}
+        <Link to="/" className="text-3xl font-extrabold text-[#3498DB] transition duration-300 hover:opacity-90">
+          Kithly
         </Link>
 
-        <nav className="flex items-center gap-4">
-          {user ? (
-            <>
-              <Button variant="ghost" asChild>
-                <Link to="/my-gifts" className="flex items-center gap-2">
-                  <Gift className="h-4 w-4" />
-                  My Gifts
-                </Link>
-              </Button>
+        {/* Navigation & Actions */}
+        <nav className="flex items-center space-x-4">
+          <Link to="/my-orders" className="text-gray-600 hover:text-[#3498DB] transition duration-300">
+            My Orders
+          </Link>
+          <Link to="/portal/dashboard" className="text-gray-600 hover:text-[#3498DB] transition duration-300">
+            Shop Portal
+          </Link>
 
-              {isShopOwner() && (
-                <Button variant="outline" asChild>
-                  <Link to="/portal/dashboard">Shop Portal</Link>
-                </Button>
-              )}
-              
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <User className="h-5 w-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={handleLogout}>
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          ) : (
-            <>
-              <Button variant="ghost" asChild>
-                <Link to="/login">Login</Link>
-              </Button>
-              <Button asChild>
-                <Link to="/register">Sign Up</Link>
-              </Button>
-            </>
-          )}
+          {/* Cart Icon */}
+          <Button variant="ghost" className="relative h-9 w-9 p-0 text-gray-600 hover:bg-gray-100">
+            <ShoppingCart className="h-5 w-5" />
+            <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full bg-[#2ECC71] text-xs text-white">3</span>
+          </Button>
+
+          {/* User Icon */}
+          <Link to="/login">
+            <Button variant="ghost" className="h-9 w-9 p-0 rounded-full text-gray-600 hover:bg-gray-100">
+              <User className="h-5 w-5" />
+            </Button>
+          </Link>
         </nav>
       </div>
     </header>
   );
-}
+};

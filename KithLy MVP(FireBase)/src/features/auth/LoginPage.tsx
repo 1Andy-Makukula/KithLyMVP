@@ -1,16 +1,20 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth, isDevelopment } from '../../lib/firebaseConfig';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
+import { useNavigate } from 'react-router-dom';
+// Import your shadcn/ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
-import { toast } from 'sonner@2.0.3';
-import { Alert, AlertDescription } from '../../components/ui/alert';
-import { Info } from 'lucide-react';
+import { Label } from '../../components/ui/label';
+import { Input } from '../../components/ui/input';
+import { Button } from '../../components/ui/button';
+import { MainLayout } from '../../components/layout/MainLayout';
 
-export function LoginPage() {
+// Mock function for Firebase login (replace with real logic later)
+const mockLogin = async (email: string) => {
+  console.log(`Attempting login for: ${email}`);
+  // In the real app, this will call signInWithEmailAndPassword from Firebase Auth
+  return { success: true, userId: 'user_diana_123' };
+};
+
+export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,83 +23,67 @@ export function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      // In development mode, show a message
-      if (isDevelopment) {
-        toast.info('Demo mode: Firebase authentication not configured. Browse the app without login!');
+      const result = await mockLogin(email);
+      if (result.success) {
+        // Successful login, redirect to homepage
         navigate('/');
-        return;
       }
-
-      await signInWithEmailAndPassword(auth, email, password);
-      toast.success('Welcome back!');
-      navigate('/');
-    } catch (error: any) {
-      console.error('Login error:', error);
-      toast.error(error.message || 'Failed to login');
+    } catch (error) {
+      console.error('Login failed:', error);
+      // Display error toast/alert to user
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg"></div>
-          </div>
-          <CardTitle>Welcome to Kithly</CardTitle>
-          <CardDescription>Login to your account</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isDevelopment && (
-            <Alert className="mb-4">
-              <Info className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Demo Mode:</strong> Firebase is not configured. You can browse the app without logging in!
-              </AlertDescription>
-            </Alert>
-          )}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Logging in...' : 'Login'}
-            </Button>
-
-            <p className="text-center text-sm text-gray-600">
+    <MainLayout>
+      <div className="flex justify-center items-start pt-16">
+        <Card className="w-[380px] border-2 border-blue-200 shadow-xl">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl text-[#3498DB]">Welcome Back to Kithly</CardTitle>
+            <CardDescription className="text-gray-600">
+              Log in to send a gift home.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="diana@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              {/* Note: bg-green-500 is used for the Accent color #2ECC71 */}
+              <Button type="submit" disabled={loading} className="w-full bg-[#2ECC71] hover:bg-green-600 transition duration-300">
+                {loading ? 'Logging In...' : 'Sign In Securely'}
+              </Button>
+            </form>
+            <p className="mt-4 text-center text-sm text-gray-500">
               Don't have an account?{' '}
-              <Link to="/register" className="text-purple-600 hover:underline">
-                Sign up
-              </Link>
+              <a href="/register" className="text-[#3498DB] hover:underline">
+                Sign Up
+              </a>
             </p>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+          </CardContent>
+        </Card>
+      </div>
+    </MainLayout>
   );
-}
+};
