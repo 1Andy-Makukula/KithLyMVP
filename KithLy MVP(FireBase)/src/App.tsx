@@ -1,54 +1,76 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from './components/ui/sonner';
-import { PrivateRoute, ShopOwnerRoute } from './components/PrivateRoute';
+import { PrivateRoute } from './components/PrivateRoute';
+
+// Layout
+import MainLayout from './components/layout/MainLayout';
+import PortalLayout from './components/layout/PortalLayout';
 
 // Customer Pages
-import { HomePage } from './features/customer/HomePage';
-import { ShopDetailPage } from './features/customer/ShopDetailPage';
-import { CheckoutPage } from './features/customer/CheckoutPage';
-import { MyGiftsPage } from './features/customer/MyGiftsPage';
+import HomePage from './pages/HomePage';
+import ShopDetailPage from './pages/ShopDetailPage';
+import CheckoutPage from './pages/CheckoutPage';
+import MyOrdersPage from './pages/MyOrdersPage';
+import MyReceivedGiftsPage from './pages/MyReceivedGiftsPage';
 
 // Gift Page
-import { PublicGiftPage } from './features/gift/PublicGiftPage';
+import PublicGiftPage from './pages/PublicGiftPage';
 
 // Auth Pages
 import { LoginPage } from './features/auth/LoginPage';
 import { RegisterPage } from './features/auth/RegisterPage';
 
 // Shop Owner Portal Pages
-import { ShopDashboard } from './features/portal/ShopDashboard';
-import { ShopProducts } from './features/portal/ShopProducts';
-import { ShopOrders } from './features/portal/ShopOrders';
-import { ShopScan } from './features/portal/ShopScan';
-import { ShopSettings } from './features/portal/ShopSettings';
+import ShopDashboard from './pages/ShopDashboard';
+import ShopProducts from './pages/ShopProducts';
+import ShopOrders from './pages/ShopOrders';
+import ShopScan from './pages/ShopScan';
+import ShopSettings from './pages/ShopSettings';
 
 export default function App() {
   return (
     <Router>
       <Toaster />
       <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/shop/:id" element={<ShopDetailPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/gift/:tokenId" element={<PublicGiftPage />} />
+        {/* Customer App */}
+        <Route
+          path="/*"
+          element={
+            <MainLayout>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/shop/:id" element={<ShopDetailPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/gift/:tokenId" element={<PublicGiftPage />} />
+                <Route element={<PrivateRoute roles={['customer', 'shop_owner']} />}>
+                  <Route path="/checkout" element={<CheckoutPage />} />
+                  <Route path="/my-orders" element={<MyOrdersPage />} />
+                  <Route path="/my-gifts" element={<MyReceivedGiftsPage />} />
+                </Route>
+              </Routes>
+            </MainLayout>
+          }
+        />
 
-        {/* Customer Private Routes */}
-        <Route element={<PrivateRoute roles={['customer', 'shop_owner']} />}>
-          <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/my-gifts" element={<MyGiftsPage />} />
-        </Route>
-
-        {/* Shop Owner Private Routes */}
-        <Route element={<ShopOwnerRoute />}>
-          <Route path="/portal/dashboard" element={<ShopDashboard />} />
-          <Route path="/portal/products" element={<ShopProducts />} />
-          <Route path="/portal/orders" element={<ShopOrders />} />
-          <Route path="/portal/scan" element={<ShopScan />} />
-          <Route path="/portal/settings" element={<ShopSettings />} />
-          <Route path="/portal" element={<Navigate to="/portal/dashboard" replace />} />
-        </Route>
+        {/* Shop Owner Portal */}
+        <Route
+          path="/portal/*"
+          element={
+            <PrivateRoute roles={['shop_owner']}>
+              <PortalLayout>
+                <Routes>
+                  <Route path="/dashboard" element={<ShopDashboard />} />
+                  <Route path="/products" element={<ShopProducts />} />
+                  <Route path="/orders" element={<ShopOrders />} />
+                  <Route path="/scan" element={<ShopScan />} />
+                  <Route path="/settings" element={<ShopSettings />} />
+                  <Route path="/" element={<Navigate to="/portal/dashboard" replace />} />
+                </Routes>
+              </PortalLayout>
+            </PrivateRoute>
+          }
+        />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
