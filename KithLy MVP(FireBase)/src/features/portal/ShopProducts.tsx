@@ -1,251 +1,240 @@
-import { useEffect, useState } from 'react';
-import { ShopSidebar } from '../../components/layout/ShopSidebar';
+import React, { useState, useEffect } from 'react';
+import { PortalLayout } from '../../components/layout/PortalLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../../components/ui/table';
+import { PlusCircle, Edit, Trash2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '../../components/ui/dialog';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { Textarea } from '../../components/ui/textarea';
-import { Card, CardContent } from '../../components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
-import { getProductsByShopId, addProduct, updateProduct, deleteProduct, Product } from '../../api/products';
+import { Switch } from '../../components/ui/switch';
 import { useAuth } from '../../hooks/useAuth';
-import { ImageWithFallback } from '../../components/figma/ImageWithFallback';
-import { Plus, Edit, Trash2, Package } from 'lucide-react';
-import { toast } from 'sonner@2.0.3';
+import { Product } from '../../types';
+import { getShopProducts, addProduct, updateProduct, deleteProduct } from '../../api/products';
+import { toast } from "sonner";
 
-export function ShopProducts() {
-  const { userData } = useAuth();
+
+export const ShopProducts: React.FC = () => {
+  const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    price_zmw: '',
-    description: '',
-    image_url: ''
-  });
 
   useEffect(() => {
-    if (userData?.shop_id) {
-      loadProducts(userData.shop_id);
+    if (user?.shop_id) {
+      fetchProducts();
     }
-  }, [userData]);
+  }, [user]);
 
-  const loadProducts = async (shopId: string) => {
-    setLoading(true);
-    const data = await getProductsByShopId(shopId);
-    setProducts(data);
-    setLoading(false);
+  const fetchProducts = async () => {
+    if (!user?.shop_id) return;
+    setIsLoading(true);
+    try {
+      const fetchedProducts = await getShopProducts(user.shop_id);
+      setProducts(fetchedProducts);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      toast.error("Failed to fetch products.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleOpenDialog = (product?: Product) => {
-    if (product) {
-      setEditingProduct(product);
-      setFormData({
-        name: product.name,
-        price_zmw: product.price_zmw.toString(),
-        description: product.description,
-        image_url: product.image_url
-      });
-    } else {
-      setEditingProduct(null);
-      setFormData({
-        name: '',
-        price_zmw: '',
-        description: '',
-        image_url: ''
-      });
-    }
+  const handleAddNew = () => {
+    setEditingProduct(null);
     setIsDialogOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!userData?.shop_id) return;
-
-    try {
-      const productData = {
-        shop_id: userData.shop_id,
-        name: formData.name,
-        price_zmw: parseFloat(formData.price_zmw),
-        description: formData.description,
-        image_url: formData.image_url,
-        is_available: true
-      };
-
-      if (editingProduct) {
-        await updateProduct(editingProduct.id, productData);
-        toast.success('Product updated successfully');
-      } else {
-        await addProduct(productData);
-        toast.success('Product added successfully');
-      }
-
-      setIsDialogOpen(false);
-      loadProducts(userData.shop_id);
-    } catch (error) {
-      toast.error('Failed to save product');
-    }
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    setIsDialogOpen(true);
   };
 
   const handleDelete = async (productId: string) => {
-    if (!window.confirm('Are you sure you want to delete this product?')) return;
-
-    try {
-      await deleteProduct(productId);
-      toast.success('Product deleted');
-      if (userData?.shop_id) {
-        loadProducts(userData.shop_id);
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      try {
+        await deleteProduct(productId);
+        toast.success('Product deleted successfully!');
+        fetchProducts(); // Refresh list
+      } catch (error) {
+        console.error("Error deleting product:", error);
+        toast.error('Failed to delete product.');
       }
-    } catch (error) {
-      toast.error('Failed to delete product');
     }
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <ShopSidebar />
+    <PortalLayout title="Product Management">
+      <div className="flex justify-end mb-6">
+        <Button onClick={handleAddNew} className="bg-[#2ECC71] hover:bg-green-600 transition duration-300">
+          <PlusCircle className="h-5 w-5 mr-2" />
+          Add New Product
+        </Button>
+      </div>
 
-      <main className="flex-1 p-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="text-3xl">Products</h1>
-            
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button onClick={() => handleOpenDialog()}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Product
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingProduct ? 'Edit Product' : 'Add New Product'}
-                  </DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Product Name</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Price (ZMW)</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      step="0.01"
-                      value={formData.price_zmw}
-                      onChange={(e) => setFormData({ ...formData, price_zmw: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="image">Image URL</Label>
-                    <Input
-                      id="image"
-                      type="url"
-                      value={formData.image_url}
-                      onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                      placeholder="https://example.com/image.jpg"
-                    />
-                    <p className="text-sm text-gray-500">
-                      Note: In production, you would upload images to Firebase Storage
-                    </p>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button type="submit" className="flex-1">
-                      {editingProduct ? 'Update' : 'Add'} Product
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => setIsDialogOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-            </div>
-          ) : products.length === 0 ? (
-            <div className="text-center py-20">
-              <Package className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-              <h2 className="text-2xl text-gray-600 mb-2">No products yet</h2>
-              <p className="text-gray-500 mb-6">Add your first product to start selling</p>
-              <Button onClick={() => handleOpenDialog()}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Product
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((product) => (
-                <Card key={product.id} className="overflow-hidden">
-                  <div className="h-48 bg-gray-100">
-                    <ImageWithFallback
-                      src={product.image_url}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <CardContent className="p-6">
-                    <h3 className="text-xl mb-2">{product.name}</h3>
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{product.description}</p>
-                    <div className="flex items-center justify-between mb-4">
-                      <span className="text-2xl text-purple-600">
-                        ZMW {product.price_zmw.toFixed(2)}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl text-[#3498DB]">Your Current Inventory</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Product</TableHead>
+                <TableHead>Price (ZMW)</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow><TableCell colSpan={4}>Loading products...</TableCell></TableRow>
+              ) : products.length > 0 ? (
+                products.map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell>K {product.price_zmw.toFixed(2)}</TableCell>
+                    <TableCell>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${product.is_available ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        {product.is_available ? 'Available' : 'Unavailable'}
                       </span>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        className="flex-1"
-                        onClick={() => handleOpenDialog(product)}
-                      >
-                        <Edit className="h-4 w-4 mr-1" />
-                        Edit
+                    </TableCell>
+                    <TableCell className="text-right space-x-2">
+                      <Button variant="ghost" size="sm" onClick={() => handleEdit(product)}>
+                        <Edit className="h-4 w-4 text-[#3498DB]" />
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        className="text-red-600 hover:bg-red-50"
-                        onClick={() => handleDelete(product.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(product.id)}>
+                        <Trash2 className="h-4 w-4 text-red-500" />
                       </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
-    </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow><TableCell colSpan={4} className="text-center">No products found. Add one to get started!</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <ProductFormDialog
+        isOpen={isDialogOpen}
+        setIsOpen={setIsDialogOpen}
+        product={editingProduct}
+        shopId={user?.shop_id}
+        onSave={fetchProducts}
+      />
+    </PortalLayout>
   );
+};
+
+// Sub-component for the Add/Edit Product Form
+interface ProductFormDialogProps {
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
+  product: Product | null;
+  shopId: string | undefined;
+  onSave: () => void;
 }
+
+const ProductFormDialog: React.FC<ProductFormDialogProps> = ({ isOpen, setIsOpen, product, shopId, onSave }) => {
+  const [name, setName] = useState('');
+  const [price, setPrice] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [isAvailable, setIsAvailable] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (product) {
+      setName(product.name);
+      setPrice(String(product.price_zmw));
+      setImageUrl(product.image_url || '');
+      setIsAvailable(product.is_available);
+    } else {
+      // Reset form for new product
+      setName('');
+      setPrice('');
+      setImageUrl('');
+      setIsAvailable(true);
+    }
+  }, [product, isOpen]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!shopId) {
+      toast.error("Cannot save product, shop not identified.");
+      return;
+    }
+    setIsSubmitting(true);
+    const productData = {
+      name,
+      price_zmw: parseFloat(price),
+      image_url: imageUrl,
+      is_available: isAvailable,
+    };
+
+    try {
+      if (product) {
+        await updateProduct(product.id, productData);
+        toast.success("Product updated successfully!");
+      } else {
+        await addProduct(shopId, productData);
+        toast.success("Product added successfully!");
+      }
+      onSave();
+      setIsOpen(false);
+    } catch (error) {
+      console.error("Failed to save product:", error);
+      toast.error("An error occurred while saving the product.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>{product ? 'Edit Product' : 'Add New Product'}</DialogTitle>
+          <DialogDescription>
+            Fill in the details below. Click save when you're done.
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">Name</Label>
+              <Input id="name" value={name} onChange={e => setName(e.target.value)} className="col-span-3" required />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="price" className="text-right">Price (ZMW)</Label>
+              <Input id="price" type="number" value={price} onChange={e => setPrice(e.target.value)} className="col-span-3" required />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="imageUrl" className="text-right">Image URL</Label>
+              <Input id="imageUrl" value={imageUrl} onChange={e => setImageUrl(e.target.value)} className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="isAvailable" className="text-right">Available</Label>
+              <Switch id="isAvailable" checked={isAvailable} onCheckedChange={setIsAvailable} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="submit" disabled={isSubmitting} className="bg-[#2ECC71] hover:bg-green-600">
+              {isSubmitting ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};

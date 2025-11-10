@@ -1,58 +1,71 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from './components/ui/sonner';
-import { PrivateRoute, ShopOwnerRoute } from './components/PrivateRoute';
+import { Routes, Route } from 'react-router-dom';
+import { CartProvider } from './contexts/CartContext';
 
-// Customer Pages
+// Layouts
+import { MainLayout } from './components/layout/MainLayout';
+import { PortalLayout } from './components/layout/PortalLayout';
+import { PrivateRoute } from './components/PrivateRoute'; // Assuming you will implement this
+
+// Features - Customer Pages
 import { HomePage } from './features/customer/HomePage';
 import { ShopDetailPage } from './features/customer/ShopDetailPage';
 import { CheckoutPage } from './features/customer/CheckoutPage';
-import { MyGiftsPage } from './features/customer/MyGiftsPage';
+import { MyGiftsPage } from './features/customer/MyGiftsPage'; // Buyer's order history
 
-// Gift Page
-import { PublicGiftPage } from './features/gift/PublicGiftPage';
-
-// Auth Pages
+// Features - Auth Pages
 import { LoginPage } from './features/auth/LoginPage';
 import { RegisterPage } from './features/auth/RegisterPage';
 
-// Shop Owner Portal Pages
+// Features - Gift Pages (Recipient Flow)
+import { PublicGiftPage } from './features/gift/PublicGiftPage';
+
+// Features - Shop Portal Pages
 import { ShopDashboard } from './features/portal/ShopDashboard';
-import { ShopProducts } from './features/portal/ShopProducts';
 import { ShopOrders } from './features/portal/ShopOrders';
+import { ShopProducts } from './features/portal/ShopProducts';
 import { ShopScan } from './features/portal/ShopScan';
 import { ShopSettings } from './features/portal/ShopSettings';
 
-export default function App() {
+
+function App() {
   return (
-    <Router>
-      <Toaster />
+    <CartProvider>
       <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/shop/:id" element={<ShopDetailPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/gift/:tokenId" element={<PublicGiftPage />} />
+        {/* =======================================================
+           PUBLIC & CUSTOMER-FACING ROUTES (Wrapped in MainLayout)
+           ======================================================= */}
+      <Route path="/" element={<MainLayout><HomePage /></MainLayout>} />
+      <Route path="/shop/:id" element={<MainLayout><ShopDetailPage /></MainLayout>} />
 
-        {/* Customer Private Routes */}
-        <Route element={<PrivateRoute roles={['customer', 'shop_owner']} />}>
-          <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/my-gifts" element={<MyGiftsPage />} />
-        </Route>
+      {/* These should ideally be wrapped in <PrivateRoute roles={['customer']}> */}
+      <Route path="/checkout" element={<MainLayout><CheckoutPage /></MainLayout>} />
+      <Route path="/my-orders" element={<MainLayout><MyGiftsPage /></MainLayout>} />
 
-        {/* Shop Owner Private Routes */}
-        <Route element={<ShopOwnerRoute />}>
-          <Route path="/portal/dashboard" element={<ShopDashboard />} />
-          <Route path="/portal/products" element={<ShopProducts />} />
-          <Route path="/portal/orders" element={<ShopOrders />} />
-          <Route path="/portal/scan" element={<ShopScan />} />
-          <Route path="/portal/settings" element={<ShopSettings />} />
-          <Route path="/portal" element={<Navigate to="/portal/dashboard" replace />} />
-        </Route>
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+      {/* PUBLIC RECIPIENT FLOW (Minimal UI) */}
+      <Route path="/gift/:tokenId" element={<PublicGiftPage />} />
+
+
+      {/* =======================================================
+         AUTH ROUTES (Minimal Layout)
+         ======================================================= */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+
+      {/* =======================================================
+         SHOP OWNER PORTAL ROUTES (Wrapped in PortalLayout)
+         ======================================================= */}
+      {/* NOTE: You will wrap this in a <ShopOwnerRoute> later */}
+      <Route path="/portal" element={<PortalLayout title="Kithly Shop Dashboard"><ShopDashboard /></PortalLayout>} />
+      <Route path="/portal/dashboard" element={<PortalLayout title="Dashboard"><ShopDashboard /></PortalLayout>} />
+      <Route path="/portal/orders" element={<PortalLayout title="Order Fulfillment"><ShopOrders /></PortalLayout>} />
+      <Route path="/portal/products" element={<PortalLayout title="Inventory Management"><ShopProducts /></PortalLayout>} />
+      <Route path="/portal/scan" element={<PortalLayout title="Scan Redemption"><ShopScan /></PortalLayout>} />
+      <Route path="/portal/settings" element={<PortalLayout title="Settings & Payouts"><ShopSettings /></PortalLayout>} />
+
+    </Routes>
+    </CartProvider>
   );
 }
+
+export default App;
