@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../../lib/firebaseConfig';
 // Import your shadcn/ui components
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Label } from '../../components/ui/label';
@@ -7,31 +9,25 @@ import { Input } from '../../components/ui/input';
 import { Button } from '../../components/ui/button';
 import { MainLayout } from '../../components/layout/MainLayout';
 
-// Mock function for Firebase login (replace with real logic later)
-const mockLogin = async (email: string) => {
-  console.log(`Attempting login for: ${email}`);
-  // In the real app, this will call signInWithEmailAndPassword from Firebase Auth
-  return { success: true, userId: 'user_diana_123' };
-};
-
 export const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     try {
-      const result = await mockLogin(email);
-      if (result.success) {
-        // Successful login, redirect to homepage
-        navigate('/');
-      }
-    } catch (error) {
+      await signInWithEmailAndPassword(auth, email, password);
+      // Successful login, onAuthStateChanged in useAuth will handle the state update.
+      // The user will be redirected from protected routes or can navigate freely.
+      navigate('/');
+    } catch (error: any) {
       console.error('Login failed:', error);
-      // Display error toast/alert to user
+      setError('Failed to log in. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -70,6 +66,7 @@ export const LoginPage: React.FC = () => {
                   required
                 />
               </div>
+              {error && <p className="text-sm text-red-500">{error}</p>}
               {/* Note: bg-green-500 is used for the Accent color #2ECC71 */}
               <Button type="submit" disabled={loading} className="w-full bg-[#2ECC71] hover:bg-green-600 transition duration-300">
                 {loading ? 'Logging In...' : 'Sign In Securely'}

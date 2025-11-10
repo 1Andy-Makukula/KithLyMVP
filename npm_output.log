@@ -1,0 +1,14 @@
+
+> KithLy MVP(FireBase)@0.1.0 dev
+> vite
+
+Port 3000 is in use, trying another one...
+Port 3001 is in use, trying another one...
+Port 3002 is in use, trying another one...
+
+  VITE v6.3.5  ready in 879 ms
+
+  ➜  Local:   http://localhost:3003/
+  ➜  Network: use --host to expose
+11:15:08 PM [vite] (client) ✨ new dependencies optimized: sonner, @radix-ui/react-switch, @radix-ui/react-dialog
+11:15:08 PM [vite] (client) ✨ optimized dependencies changed. reloading
