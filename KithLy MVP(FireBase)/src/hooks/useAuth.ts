@@ -2,78 +2,92 @@ import { useState, useEffect } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db, isDevelopment } from '../lib/firebaseConfig';
-import { mockUser, mockUserData } from '../lib/mockData';
 
-export interface UserData {
-  email: string;
-  first_name: string;
-  last_name: string;
-  phone_number?: string;
-  roles: string[];
+// Define the structure of our user profile data from Firestore
+interface UserProfile {
+  roles: {
+    admin?: boolean;
+    shop_owner?: boolean;
+    customer?: boolean;
+  };
   shop_id?: string;
 }
 
-export function useAuth() {
+// Define the state that the hook will return
+interface AuthState {
+  user: User | null;
+  profile: UserProfile | null;
+  loading: boolean;
+  error: Error | null;
+  isShopOwner: boolean;
+  isAdmin: boolean;
+}
+
+// Create a mock user for development mode
+const mockUser: User = {
+  uid: 'mock-user-123',
+  email: 'dev@kith.ly',
+  emailVerified: true,
+  isAnonymous: false,
+  metadata: {},
+  providerData: [],
+  // Add any other required User properties with default values
+} as User;
+
+export const useAuth = (): AuthState => {
   const [user, setUser] = useState<User | null>(null);
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(!isDevelopment); // Start not-loading in dev mode
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // In development mode, use mock authentication
     if (isDevelopment) {
-      // Immediately set to not loading in dev mode
-      setUser(null);
-      setUserData(null);
       setLoading(false);
-      return;
-    }
-
-    try {
-      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-        setUser(firebaseUser);
-        
-        if (firebaseUser) {
-          // Fetch user data from Firestore
-          try {
-            const userDocRef = doc(db, 'users', firebaseUser.uid);
-            const userDoc = await getDoc(userDocRef);
-            
-            if (userDoc.exists()) {
-              setUserData(userDoc.data() as UserData);
-            }
-          } catch (error) {
-            console.error('Error fetching user data:', error);
-          }
-        } else {
-          setUserData(null);
-        }
-        
-        setLoading(false);
+      // Set a consistent mock state for development
+      setUser(mockUser);
+      setProfile({
+        roles: { shop_owner: true, customer: true },
+        shop_id: 'mock-shop-123'
       });
-
-      return () => unsubscribe();
-    } catch (error) {
-      console.error('Auth initialization error:', error);
-      setLoading(false);
       return;
     }
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setLoading(true);
+      setError(null);
+
+      if (user) {
+        setUser(user);
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+
+          if (userDoc.exists()) {
+            setProfile(userDoc.data() as UserProfile);
+          } else {
+            console.warn("No user profile document found for UID:", user.uid);
+            setProfile({ roles: { customer: true } });
+          }
+        } catch (err) {
+          setError(err as Error);
+          console.error("Failed to fetch user profile:", err);
+        }
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
-
-  const hasRole = (role: string) => {
-    return userData?.roles?.includes(role) || false;
-  };
-
-  const isAdmin = () => hasRole('admin');
-  const isShopOwner = () => hasRole('shop_owner');
-  const isCustomer = () => hasRole('customer');
 
   return {
     user,
-    userData,
+    profile,
     loading,
-    hasRole,
-    isAdmin,
-    isShopOwner,
-    isCustomer
+    error,
+    isShopOwner: profile?.roles?.shop_owner ?? false,
+    isAdmin: profile?.roles?.admin ?? false,
   };
-}
+};

@@ -1,35 +1,37 @@
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import React from 'react';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import useAuth from '../hooks/useAuth';
 
-interface PrivateRouteProps {
-  roles?: string[];
-}
-
-export function PrivateRoute({ roles }: PrivateRouteProps) {
-  const { user, userData, loading } = useAuth();
+// This component protects routes that should only be accessible to shop owners.
+export const PrivateRoute: React.FC<{ roles: string[] }> = ({ roles }) => {
+  const { profile, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-      </div>
-    );
+    return <div>Loading...</div>; // Replace with a proper spinner component later
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
+  const userRoles = Object.keys(profile?.roles || {});
+  const hasRole = roles.some(role => userRoles.includes(role));
+
+  if (profile && hasRole) {
+    return <Outlet />;
   }
 
-  if (roles && userData) {
-    const hasRequiredRole = roles.some(role => userData.roles?.includes(role));
-    if (!hasRequiredRole) {
-      return <Navigate to="/" replace />;
-    }
+  return <Navigate to="/login" state={{ from: location }} replace />;
+};
+
+export const ShopOwnerRoute: React.FC = () => {
+  const { isShopOwner, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return <div>Loading...</div>; // Replace with a proper spinner component later
   }
 
-  return <Outlet />;
-}
+  if (isShopOwner) {
+    return <Outlet />;
+  }
 
-export function ShopOwnerRoute() {
-  return <PrivateRoute roles={['shop_owner']} />;
-}
+  return <Navigate to="/login" state={{ from: location }} replace />;
+};
